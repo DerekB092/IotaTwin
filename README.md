@@ -206,7 +206,7 @@ I'm Derek Brewer, an undergraduate in nuclear engineering at **Purdue University
 
 ## How this was built
 
-I use AI assistants (Claude and Gemini) as tutors and pair programmers on this project: to explain the physics, point me to the relevant literature, and help write and review the more complex code. Every model here is cross-checked against the published references below, and understanding *why* each line exists is the point of the project. Using these tools well is part of how modern engineering gets done, and I'd rather be upfront about it.
+I use AI assistants (Claude and Gemini) as advanced teachers and pair programmers on this project: to explain the physics past where I currently understand, point me to the relevant literature, and help write and review the more complex code. Every model here is cross-checked against the published references below, and understanding *why* each line exists is the point of the project. Using these tools well is part of how modern engineering gets done, and I'd rather be upfront about it.
 
 ---
 
