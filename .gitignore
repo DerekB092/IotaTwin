@@ -1,0 +1,32 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS clutter ---
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# --- Simulation output (scratch runs; commit curated figures under docs/ instead) ---
+output/
+results/
+*.h5
+*.nc
+*.npz
