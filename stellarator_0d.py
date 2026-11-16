@@ -160,7 +160,7 @@ class PlasmaEngine0D:
         }
 
 
-def plot_popcon(engine: PlasmaEngine0D):
+def plot_popcon(engine: PlasmaEngine0D, design_point=None, save_path=None):
     """Generates a 2D Plasma Operation Contour (POPCON) plot with high-contrast dark theme."""
     # Apply dark background BEFORE creating figure so all labels default to crisp white!
     plt.style.use('dark_background')
@@ -193,7 +193,9 @@ def plot_popcon(engine: PlasmaEngine0D):
 
     # 4. Stellarator Sudo Density Limit (where N - n_Sudo = 0)
     sudo_margin = N - res["n_limit"]
-    c_sudo = ax.contour(T, N, sudo_margin, levels=[0.0], colors='#ff3333', linewidths=2.5)
+    # Draw the limit line only where the plasma still needs auxiliary heating (outside the ignited zone)
+    sudo_line = np.where(res["P_aux_MW"] > 0.0, sudo_margin, np.nan)
+    c_sudo = ax.contour(T, N, sudo_line, levels=[0.0], colors='#ff3333', linewidths=2.5)
     ax.clabel(c_sudo, inline=True, fontsize=10, fmt="Sudo Density Limit ($n_{Sudo}$)")
     # Shade unstable high-density radiative collapse zone
     ax.contourf(T, N, sudo_margin, levels=[0.0, 10.0], colors=['#ff3333'], alpha=0.18, hatches=['//'])
@@ -202,6 +204,19 @@ def plot_popcon(engine: PlasmaEngine0D):
     lvl = engine.cfg.beta_max_pct
     c_beta = ax.contour(T, N, res["beta_pct"], levels=[lvl], colors='#ff44ff', linewidths=2.5)
     ax.clabel(c_beta, inline=True, fontsize=10, fmt={lvl: f"Equilibrium Limit ($\\langle\\beta\\rangle = {lvl}\\%$)"})
+
+    # 6. Ignited region (alpha heating alone exceeds losses, P_aux = 0).
+    # A 0D steady state is not self-consistent here, so it is hatched rather than trusted.
+    ignited = (res["P_aux_MW"] <= 0.0).astype(float)
+    ax.contourf(T, N, ignited, levels=[0.5, 1.5], colors='none', hatches=['xx'])
+    ax.contour(T, N, ignited, levels=[0.5], colors='white', linewidths=1.0, linestyles='dotted')
+
+    # 7. Design point marker
+    if design_point is not None:
+        n_dp, T_dp = design_point
+        ax.plot(T_dp, n_dp, marker='*', markersize=18, color='gold', markeredgecolor='black', zorder=10)
+        ax.annotate("Design point", (T_dp, n_dp), xytext=(10, -16), textcoords='offset points',
+                    color='gold', fontsize=10, fontweight='bold')
 
     # Crisp white labels and styling
     ax.set_title(
@@ -218,6 +233,8 @@ def plot_popcon(engine: PlasmaEngine0D):
     ax.grid(True, linestyle=':', color='white', alpha=0.25)
 
     plt.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150, facecolor=fig.get_facecolor())
     plt.show()
 
 
@@ -226,12 +243,14 @@ if __name__ == "__main__":
     stellarator_cfg = ReactorConfig()
     engine = PlasmaEngine0D(stellarator_cfg)
 
-    # Evaluate a typical high-density stellarator operating point: n_e = 2.0e20 m^-3, T = 9.0 keV
-    point = engine.evaluate_state(n20=np.array(2.0), T_keV=np.array(9.0))
+    # Design point chosen to sit inside both operational limits with margin:
+    # n_e = 1.6e20 m^-3 (~90% of n_Sudo), <T> = 10 keV (<beta> ~ 4.1%, ~91% of the 4.5% limit)
+    n_dp, T_dp = 1.6, 10.0
+    point = engine.evaluate_state(n20=np.array(n_dp), T_keV=np.array(T_dp))
     
     print(f"=== {stellarator_cfg.name} Design Point ===")
     print(f"Rotational Transform (iota): {stellarator_cfg.iota_bar:.2f} (q = {point['q95']:.2f})")
-    print(f"Sudo Density Limit (n_Sudo): {point['n_limit']:.2f} x 10^20 m^-3 (Operating at 2.00)")
+    print(f"Sudo Density Limit (n_Sudo): {point['n_limit']:.2f} x 10^20 m^-3 (Operating at {n_dp:.2f})")
     print(f"Confinement Time (tau_E):    {point['tau_E']:.2f} s (ISS04 Scaling)")
     print(f"Fusion Power (P_fus):        {point['P_fus_MW']:.1f} MW")
     print(f"Alpha Heating (P_alpha):     {point['P_alpha_MW']:.1f} MW")
@@ -242,4 +261,4 @@ if __name__ == "__main__":
     print(f"Neutron Wall Loading:        {point['neutron_wall_load_MW_m2']:.2f} MW/m^2")
 
     # Generate POPCON Visualization
-    plot_popcon(engine)
+    plot_popcon(engine, design_point=(n_dp, T_dp))
